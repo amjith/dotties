@@ -22,6 +22,7 @@ async def _stow(name):
     try:
         cur_dir = os.getcwd()
         os.chdir(DOTTIES_FOLDER)
+        print(f"stow {name}")
         out, err = await run(f"stow {name}")
         if err:
             print(err)
@@ -58,11 +59,18 @@ dotties add path/to/folder_or_file
         out, err = await run("git init")
         print(out or err)
 
+def verify_init():
+    if DOTTIES_FOLDER.exists():
+        return True
+    else:
+        print(f"{DOTTIES_FOLDER} is missing. Run `dotties init`")
+        sys.exit(1)
 
 async def add(path_str):
+    verify_init()
     src = Path(path_str)
     name = src.name if src.is_dir() else src.parent
-    if name.samefile(Path.home()):
+    if src.is_file() and name.samefile(Path.home()):
         name = input('Name:')
     dest = DOTTIES_FOLDER / name / src.parent.relative_to(Path.home())
     os.makedirs(dest, exist_ok=True)

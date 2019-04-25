@@ -1,5 +1,8 @@
 FROM python:3
 
+RUN apt update
+RUN apt install stow
+
 COPY example_dotfiles  /root
 
 RUN echo 'ping localhost &' > /bootstrap.sh
