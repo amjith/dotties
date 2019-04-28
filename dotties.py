@@ -68,10 +68,21 @@ def verify_init():
 
 async def add(path_str):
     verify_init()
-    src = Path(path_str)
-    name = src.name if src.is_dir() else src.parent
-    if src.is_file() and name.samefile(Path.home()):
-        name = input('Name:')
+    src = Path(path_str).absolute()
+    if not src.exists():
+        print(f"Nope! {src} does NOT exist.")
+        sys.exit(1)
+    if src.is_file():
+        if src.parent.samefile(Path.home()):
+            name = ''
+        else:
+            name = src.parent.name.lstrip(".")
+    else:
+        name = src.name.lstrip(".")
+    name = input(f'Name [{name}]:') or name
+    if not name:
+        print(f"Failure! Name cannont be empty.")
+        sys.exit(1)
     dest = DOTTIES_FOLDER / name / src.parent.relative_to(Path.home())
     os.makedirs(dest, exist_ok=True)
     # Check for already existing files before moving?
