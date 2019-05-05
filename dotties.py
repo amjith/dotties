@@ -22,8 +22,9 @@ async def _stow(name):
     try:
         cur_dir = os.getcwd()
         os.chdir(DOTTIES_FOLDER)
-        print(f"stow {name}")
-        out, err = await run(f"stow {name}")
+        cmd = f"stow -v -R {name}"
+        print(cmd)
+        out, err = await run(cmd)
         if err:
             print(err)
             return
@@ -72,23 +73,28 @@ async def add(path_str):
     if not src.exists():
         print(f"Nope! {src} does NOT exist.")
         sys.exit(1)
+
+    if DOTTIES_FOLDER in src.resolve().parents:
+        print(f"Already managed by dotties: {src.resolve()}")
+        print(f"No changes were made.")
+        sys.exit(0)
+
     if src.is_file():
         if src.parent.samefile(Path.home()):
             name = ''
         else:
-            name = src.parent.name.lstrip(".")
+            name = src.parent.name
     else:
-        name = src.name.lstrip(".")
+        name = src.name
+    name = name.lstrip(".")  # Remove the leading "." in the name
     name = input(f'Name [{name}]:') or name
-    if not name:
-        print(f"Failure! Name cannont be empty.")
-        sys.exit(1)
+    while not name:
+        print(f"Name cannont be empty.")
+        name = input(f'Name [{name}]:') or name
     dest = DOTTIES_FOLDER / name / src.parent.relative_to(Path.home())
     os.makedirs(dest, exist_ok=True)
-    # Check for already existing files before moving?
-    print(f"Moving {src} to {dest}.")
+    print(f"Moving {src} -> {dest}")
     shutil.move(str(src), str(dest))
-    print(f"Creating symlinks.")
     await _stow(name)
 
 def sync():
@@ -97,19 +103,28 @@ def sync():
 def status():
     pass
 
-def install():
-    pass
-
 
 COMMAND_HANDLERS = {
     "init": init,
     "add": add,
         }
 
+def usage():
+    print("Usage:")
+    print(f"{sys.argv[0]} COMMAND")
+    print(f"Available COMMANDS: {list(COMMAND_HANDLERS)}")
+
 async def main():
+    if len(sys.argv) < 2:
+        print("Missing COMMAND argument.")
+        usage()
+        sys.exit(1)
+
     handler = COMMAND_HANDLERS.get(sys.argv[1])
     if handler is None:
-        print("unknown command")
+        print(f"Unknown command: {sys.argv[1]}.")
+        usage()
+        sys.exit(1)
     await handler(*sys.argv[2:])
 
 
